@@ -32,56 +32,51 @@ export default function Home() {
       </nav>
 
       <main className="dashboard">
-        <header className="hero">
-          <div className="hero-content">
-            <h1>
-              <span className="title-cargo">CargoGate</span>{' '}
-              <span className="title-compliance">Compliance</span>
-            </h1>
-            <p className="hero-subtitle">
-              Instant pre-booking compliance firewall. Validate EORI numbers, HS Codes, 
-              and goods descriptions against EU ICS2 regulations in real-time. Completely free.
-            </p>
-            
-            <div className="hero-badges" style={{ marginTop: '16px' }}>
-              <span className="hero-badge">
-                <span className="hero-badge-dot" />
-                EU EOS Live
-              </span>
-              <span className="hero-badge">
-                <span className="hero-badge-dot hero-badge-dot-blue" />
-                HS 2022 Index
-              </span>
-              <span className="hero-badge">
-                <span className="hero-badge-dot hero-badge-dot-amber" />
-                ICS2 Scanner
-              </span>
-            </div>
-          </div>
-        </header>
-
         <div className="dashboard-split">
           <div className="dashboard-main">
-            <div style={{ marginBottom: '24px', padding: '12px 16px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
+            <header className="hero" style={{ textAlign: 'left', padding: '0 0 var(--space-xl) 0', marginBottom: '0' }}>
+              <div className="hero-content">
+                <h1>
+                  <span className="title-cargo">CargoGate</span>{' '}
+                  <span className="title-compliance">Compliance</span>
+                </h1>
+                <p className="hero-subtitle" style={{ margin: '0 0 var(--space-lg) 0', maxWidth: '100%' }}>
+                  Instant pre-booking compliance firewall. Validate EORI numbers, HS Codes, 
+                  and goods descriptions against EU ICS2 regulations in real-time. Completely free.
+                </p>
+                
+                <div className="hero-badges" style={{ justifyContent: 'flex-start' }}>
+                  <span className="hero-badge">
+                    <span className="hero-badge-dot" />
+                    EU EOS Live
+                  </span>
+                  <span className="hero-badge">
+                    <span className="hero-badge-dot hero-badge-dot-blue" />
+                    HS 2022 Index
+                  </span>
+                  <span className="hero-badge">
+                    <span className="hero-badge-dot hero-badge-dot-amber" />
+                    ICS2 Scanner
+                  </span>
+                </div>
+              </div>
+            </header>
+
+            <div style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: 'var(--shadow-btn)' }}>
+              <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '10px', borderRadius: '50%', color: '#10b981' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+              </div>
               <div>
-                <h4 style={{ margin: '0 0 2px 0', color: '#059669', fontSize: '0.9rem', fontWeight: '700' }}>Zero Data Retention Guarantee</h4>
+                <h4 style={{ margin: '0 0 4px 0', color: 'var(--text-primary)', fontSize: '1rem', fontWeight: '700' }}>Zero Data Retention Guarantee</h4>
                 <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                   Validated in memory. Instantly destroyed. We do not store or log your proprietary manifests.
                 </p>
               </div>
             </div>
 
-            <div className="dashboard-grid">
-              <EoriValidator />
-              <HsCodeValidator />
-            </div>
-          </div>
-
-          <aside className="dashboard-sidebar">
-            <div className="api-upsell-card">
+            <div className="api-upsell-card" style={{ marginTop: 'var(--space-xl)' }}>
               <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
                 API Integration
@@ -95,6 +90,23 @@ export default function Home() {
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '2px' }}>Includes 50,000 requests</div>
               </div>
               <ApiRequestButton className="btn btn-primary btn-full" style={{ padding: '0.75rem' }}>Request API Key</ApiRequestButton>
+            </div>
+          </div>
+
+          <aside className="dashboard-sidebar">
+            <div className="validation-console">
+              <div className="console-header">
+                <div className="console-header-dots">
+                  <span className="console-dot red"></span>
+                  <span className="console-dot yellow"></span>
+                  <span className="console-dot green"></span>
+                </div>
+                <div className="console-header-title">ICS2 Compliance Engine v2.0</div>
+              </div>
+              <div className="console-body" style={{ flexDirection: 'column', gap: 'var(--space-md)' }}>
+                <EoriValidator />
+                <HsCodeValidator />
+              </div>
             </div>
           </aside>
         </div>

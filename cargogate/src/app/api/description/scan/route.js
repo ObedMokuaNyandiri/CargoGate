@@ -32,14 +32,27 @@ export async function POST(request) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    // 2. If valid, or if no Gemini key is provided, return immediately
-    if (result.valid || !model || !result.flaggedTerms.length) {
+    // 2. If valid, return immediately
+    if (result.valid || !result.flaggedTerms.length) {
       return NextResponse.json({
         valid: result.valid,
         flaggedTerms: result.flaggedTerms,
-        message: result.valid
-          ? 'VALID: Description meets specificity requirements.'
-          : `NON-COMPLIANT: Ambiguous terminology detected (e.g., '${result.flaggedTerms[0]?.term}'). Specify with precise product identifiers.`,
+        message: 'VALID: Description meets specificity requirements.',
+      });
+    }
+
+    // If invalid, check for Gemini key
+    if (!model) {
+      // Return local suggestions but explicitly mark them
+      const flaggedWithWarning = result.flaggedTerms.map(localTerm => ({
+        ...localTerm,
+        suggestion: `[Gemini API Key Missing] System fallback: ${localTerm.suggestion}`
+      }));
+
+      return NextResponse.json({
+        valid: result.valid,
+        flaggedTerms: flaggedWithWarning,
+        message: `NON-COMPLIANT: Ambiguous terminology detected (e.g., '${result.flaggedTerms[0]?.term}'). Specify with precise product identifiers.`,
       });
     }
 
