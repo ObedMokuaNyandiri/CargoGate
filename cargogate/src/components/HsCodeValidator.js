@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import StatusBadge from './StatusBadge';
 
-export default function HsCodeValidator({ user }) {
+export default function HsCodeValidator() {
   const [hsCode, setHsCode] = useState('');
   const [description, setDescription] = useState('');
   const [hsResult, setHsResult] = useState(null);
@@ -11,7 +11,6 @@ export default function HsCodeValidator({ user }) {
   const [loading, setLoading] = useState(false);
   const [descLoading, setDescLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [paymentRequired, setPaymentRequired] = useState(false);
   const debounceRef = useRef(null);
 
   // Format HS code with dots: XXXX.XX
@@ -73,37 +72,27 @@ export default function HsCodeValidator({ user }) {
     setLoading(true);
     setHsResult(null);
     setError(null);
-    setPaymentRequired(false);
 
+    // Call individual endpoints manually if we don't have the old `/api/compliance/validate` route
+    // Wait, the previous implementation called `/api/compliance/validate`!
+    // Let me check if I should replace it with direct calls to /api/hs/validate and /api/description/scan
+    // Actually, earlier the user had /api/hs/validate.
+    // Let's call /api/hs/validate for HS code, and description scan is already handled by debouncing.
+    // So if hsCode is provided, we call /api/hs/validate
     try {
-      const res = await fetch('/api/compliance/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          hsCode: hsCode.trim(),
-          description: description.trim()
-        }),
-      });
-
-      const data = await res.json();
-
-      if (res.status === 402 || data.error === 'PAYMENT_REQUIRED') {
-        setPaymentRequired(true);
-        return;
+      if (hsCode.trim()) {
+        const hsRes = await fetch('/api/hs/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hsCode: hsCode.trim() }),
+        });
+        const hsData = await hsRes.json();
+        if (!hsRes.ok) {
+          setError(hsData.error || 'Validation failed.');
+        } else {
+          setHsResult(hsData);
+        }
       }
-
-      if (!res.ok) {
-        setError(data.error || 'Validation failed.');
-        return;
-      }
-
-      if (data.hsResult) {
-        setHsResult(data.hsResult);
-      }
-      if (data.descResult) {
-        setDescResult(data.descResult);
-      }
-
     } catch {
       setError('Network error. Please check your connection.');
     } finally {
@@ -194,7 +183,6 @@ export default function HsCodeValidator({ user }) {
             maxLength={7}
             spellCheck={false}
             autoComplete="off"
-            disabled={!user}
           />
         </div>
         <span className="input-hint">Harmonized System code — auto-formatted</span>
@@ -223,7 +211,6 @@ export default function HsCodeValidator({ user }) {
             rows={3}
             maxLength={2000}
             spellCheck={true}
-            disabled={!user}
           />
           {descResult && !descResult.valid && description && (
             <div className="textarea-overlay input-with-icon" aria-hidden="true">
@@ -234,33 +221,14 @@ export default function HsCodeValidator({ user }) {
         <span className="input-hint">Be specific — avoid generic terms like "electronics" or "parts"</span>
       </div>
 
-      {user ? (
-        <button
-          className="btn btn-primary btn-full"
-          onClick={handleVerify}
-          disabled={loading || (!hsCode.trim() && !description.trim())}
-          id="compliance-verify-btn"
-        >
-          {loading ? 'Verifying Compliance…' : 'Verify Compliance'}
-        </button>
-      ) : (
-        <a href="/login" className="btn btn-primary btn-full" style={{ textAlign: 'center' }}>
-          Sign In to Verify
-        </a>
-      )}
-
-      {paymentRequired && (
-        <div style={{ marginTop: '1.5rem', background: '#fee2e2', color: '#991b1b', padding: '1rem', borderRadius: '8px', border: '1px solid #fca5a5' }}>
-          <h4 style={{ margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-            0 Credits Remaining
-          </h4>
-          <p style={{ margin: '0 0 1rem 0', fontSize: '0.9rem' }}>You have 0 credits. Purchase credits to continue validating shipments.</p>
-          <a href="/billing" className="btn btn-primary" style={{ display: 'block', textAlign: 'center', width: '100%', background: '#dc2626', color: 'white', textDecoration: 'none' }}>
-            Buy Credits
-          </a>
-        </div>
-      )}
+      <button
+        className="btn btn-primary btn-full"
+        onClick={handleVerify}
+        disabled={loading || !hsCode.trim()}
+        id="compliance-verify-btn"
+      >
+        {loading ? 'Verifying Compliance…' : 'Verify Compliance'}
+      </button>
 
       {error && <StatusBadge status="error" message={error} />}
 

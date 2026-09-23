@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
 import { LRUCache } from 'lru-cache';
-import { createClient } from '@/utils/supabase/server';
-import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 
 const SOAP_ENDPOINT = 'https://ec.europa.eu/taxation_customs/dds2/eos/validation/services/validation';
 const SOAP_NAMESPACE = 'http://eori.ws.eos.dds.s/';
@@ -9,12 +7,12 @@ const SOAP_NAMESPACE = 'http://eori.ws.eos.dds.s/';
 // LRU Cache for valid/invalid EORI checks
 const eoriCache = new LRUCache({
   max: 10000,
-  ttl: 1000 * 60 * 60 * 24,
+  ttl: 1000 * 60 * 60 * 24, // 24 hours
 });
 
 const rateLimitMap = new Map();
-const RATE_LIMIT = 10;
-const RATE_WINDOW_MS = 60_000;
+const RATE_LIMIT = 30; // Increased limit for free tool
+const RATE_WINDOW_MS = 60_000; // 1 minute
 
 function checkRateLimit(ip) {
   const now = Date.now();
@@ -106,15 +104,6 @@ const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
 export async function POST(request) {
   try {
-    // 1. Authenticate user strictly
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // 2. Check Rate Limit
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     if (!checkRateLimit(ip)) {
       return NextResponse.json(
@@ -137,178 +126,80 @@ export async function POST(request) {
       );
     }
 
-    // Initialize Admin client for secure DB operations
-    const supabaseAdmin = createSupabaseAdmin(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-
-    // 3. Retrieve user's organisation and credit account
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('organisation_id')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found.' }, { status: 404 });
-    }
-
-    const { data: creditAccount } = await supabaseAdmin
-      .from('credit_accounts')
-      .select('id, balance')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!creditAccount) {
-      return NextResponse.json({ error: 'Credit account not found.' }, { status: 404 });
-    }
-
-    if (creditAccount.balance < 1) {
-      return NextResponse.json({ error: 'PAYMENT_REQUIRED', message: 'You have 0 credits. Purchase credits to continue validating shipments.' }, { status: 402 });
-    }
-
-    // 3.5 Check for exact match in DB in the last 24 hours to prevent duplicate charging
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data: recentCheck } = await supabaseAdmin
-      .from('validation_checks')
-      .select('result_details, validation_sessions!inner(user_id)')
-      .eq('check_type', 'EORI')
-      .eq('input_value', eori)
-      .eq('validation_sessions.user_id', user.id)
-      .gte('validated_at', twentyFourHoursAgo)
-      .order('validated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (recentCheck) {
-      return NextResponse.json({ 
-        ...recentCheck.result_details, 
-        cached: true, 
-        balance: creditAccount.balance 
-      });
-    }
-
-    // 4. Create Validation Session IN_PROGRESS
-    const { data: sessionData, error: sessionError } = await supabaseAdmin
-      .from('validation_sessions')
-      .insert({
-        user_id: user.id,
-        organisation_id: profile.organisation_id,
-        type: 'EORI',
-        status: 'IN_PROGRESS'
-      })
-      .select('id')
-      .single();
-
-    if (sessionError) {
-      console.error('Session creation error:', sessionError);
-      return NextResponse.json({ error: 'Failed to create validation session.' }, { status: 500 });
-    }
-
-    const sessionId = sessionData.id;
-    let finalResponse;
-
-    // 5. Check LRU Cache or Fetch from SOAP
     const cachedResponse = eoriCache.get(eori);
     if (cachedResponse) {
-      finalResponse = { ...cachedResponse, cached: true };
-    } else {
-      const soapBody = buildSoapEnvelope(eori);
-      let xmlText = null;
-      let fetchError = null;
-      const MAX_RETRIES = 3;
-      
-      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-        try {
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 10000);
-          
-          const response = await fetch(SOAP_ENDPOINT, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'text/xml; charset=utf-8',
-              'SOAPAction': '',
-            },
-            body: soapBody,
-            signal: controller.signal,
-          });
-          
-          clearTimeout(timeout);
-          
-          if (response.ok) {
-            xmlText = await response.text();
-            break;
-          } else {
-            throw new Error(`HTTP ${response.status}`);
-          }
-        } catch (err) {
-          fetchError = err;
-          if (attempt < MAX_RETRIES - 1) {
-            const waitTime = Math.pow(2, attempt) * 1000 + Math.random() * 500;
-            await delay(waitTime);
-          }
+      return NextResponse.json({ ...cachedResponse, cached: true });
+    }
+
+    const soapBody = buildSoapEnvelope(eori);
+    let xmlText = null;
+    let fetchError = null;
+    const MAX_RETRIES = 3;
+    
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        
+        const response = await fetch(SOAP_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/xml; charset=utf-8',
+            'SOAPAction': '',
+          },
+          body: soapBody,
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeout);
+        
+        if (response.ok) {
+          xmlText = await response.text();
+          break;
+        } else {
+          throw new Error(`HTTP ${response.status}`);
+        }
+      } catch (err) {
+        fetchError = err;
+        if (attempt < MAX_RETRIES - 1) {
+          const waitTime = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+          await delay(waitTime);
         }
       }
-
-      if (!xmlText) {
-        await supabaseAdmin.from('validation_sessions').update({ status: 'FAILED' }).eq('id', sessionId);
-        return NextResponse.json({ error: 'Unable to reach the EU EOS validation service.' }, { status: 502 });
-      }
-
-      const result = parseSoapResponse(xmlText);
-
-      if (result.error) {
-        await supabaseAdmin.from('validation_sessions').update({ status: 'FAILED' }).eq('id', sessionId);
-        return NextResponse.json({ error: result.message }, { status: 502 });
-      }
-
-      const isValid = result.status === 0;
-      finalResponse = {
-        valid: isValid,
-        eori: result.eori || eori,
-        status: result.status,
-        statusDescription: result.statusDescription,
-        entityName: result.entityName,
-        address: result.address,
-        street: result.street,
-        postalCode: result.postalCode,
-        city: result.city,
-        country: result.country,
-        requestDate: result.requestDate,
-        message: isValid
-          ? 'VALID: Active Entity (Verified via EU EOS Database).'
-          : 'INVALID: EORI Number is unregistered or expired.',
-        cached: false,
-      };
-
-      eoriCache.set(eori, finalResponse);
     }
 
-    // 6. Consume 1 credit atomically
-    const { data: transactionId, error: rpcError } = await supabaseAdmin.rpc('consume_credit', {
-      p_user_id: user.id,
-      p_session_id: sessionId,
-      p_type: 'VALIDATION'
-    });
-
-    if (rpcError || !transactionId) {
-      await supabaseAdmin.from('validation_sessions').update({ status: 'FAILED' }).eq('id', sessionId);
-      return NextResponse.json({ error: 'PAYMENT_REQUIRED', message: 'Insufficient credits.' }, { status: 402 });
+    if (!xmlText) {
+      return NextResponse.json({ error: 'Unable to reach the EU EOS validation service.' }, { status: 502 });
     }
 
-    // 7. Save Validation Result in validation_checks
-    await supabaseAdmin
-      .from('validation_checks')
-      .insert({
-        validation_session_id: sessionId,
-        check_type: 'EORI',
-        input_value: eori,
-        result: finalResponse.valid ? 'VALID' : 'INVALID',
-        result_details: finalResponse
-      });
+    const result = parseSoapResponse(xmlText);
 
-    return NextResponse.json({ ...finalResponse, sessionId, balance: creditAccount.balance - 1 });
+    if (result.error) {
+      return NextResponse.json({ error: result.message }, { status: 502 });
+    }
+
+    const isValid = result.status === 0;
+    const finalResponse = {
+      valid: isValid,
+      eori: result.eori || eori,
+      status: result.status,
+      statusDescription: result.statusDescription,
+      entityName: result.entityName,
+      address: result.address,
+      street: result.street,
+      postalCode: result.postalCode,
+      city: result.city,
+      country: result.country,
+      requestDate: result.requestDate,
+      message: isValid
+        ? 'VALID: Active Entity (Verified via EU EOS Database).'
+        : 'INVALID: EORI Number is unregistered or expired.',
+      cached: false,
+    };
+
+    eoriCache.set(eori, finalResponse);
+
+    return NextResponse.json(finalResponse);
 
   } catch (err) {
     console.error('[EORI Validate] Unexpected error:', err);

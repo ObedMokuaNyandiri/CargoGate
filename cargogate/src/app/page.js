@@ -1,45 +1,9 @@
 import EoriValidator from '@/components/EoriValidator';
 import HsCodeValidator from '@/components/HsCodeValidator';
-import { logout } from '@/app/auth-actions';
-import { createClient } from '@/utils/supabase/server';
+import ApiRequestButton from '@/components/ApiRequestButton';
 import Link from 'next/link';
 
-export default async function Home() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  let profile = null;
-  let credits = 0;
-  let recentActivity = [];
-  if (user) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('company_name, role')
-      .eq('id', user.id)
-      .single();
-    profile = data;
-
-    const { data: creditAccount } = await supabase
-      .from('credit_accounts')
-      .select('id, balance')
-      .eq('user_id', user.id)
-      .single();
-    if (creditAccount) {
-      credits = creditAccount.balance;
-    }
-
-    if (creditAccount) {
-      const { data: txs } = await supabase
-        .from('credit_transactions')
-        .select('created_at, type, reason, amount')
-        .eq('credit_account_id', creditAccount.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
-      
-      if (txs) recentActivity = txs;
-    }
-  }
-
+export default function Home() {
   return (
     <>
       <nav className="nav-bar">
@@ -57,35 +21,13 @@ export default async function Home() {
           </span>
         </Link>
         <div className="nav-actions">
-          {profile && (
-            <div className="nav-profile">
-              <span className="nav-company">{profile.company_name}</span>
-              <span className="nav-role">Badge: {profile.role}</span>
-            </div>
-          )}
-          {user ? (
-            <>
-              <div className="nav-credits">
-                <span className="credits-badge" style={{ background: 'var(--bg-card)', padding: '4px 10px', borderRadius: '16px', fontSize: '0.85rem', border: '1px solid var(--border)', marginRight: '10px' }}>
-                  Credits: <strong>{credits}</strong>
-                </span>
-              </div>
-              <Link href="/settings" className="nav-btn">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                Settings
-              </Link>
-              <form action={logout}>
-                <button type="submit" className="nav-btn">
-                  Log Out
-                </button>
-              </form>
-            </>
-          ) : (
-            <>
-              <Link href="/login" className="nav-btn">Log In</Link>
-              <Link href="/signup" className="nav-btn" style={{ background: 'var(--accent-primary)', color: 'white', border: 'none' }}>Sign Up</Link>
-            </>
-          )}
+          <ApiRequestButton className="nav-btn" style={{ marginRight: '12px', color: 'var(--text-primary)', borderColor: 'var(--border-subtle)', fontWeight: '600' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent-primary)' }}><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+            API Access
+          </ApiRequestButton>
+          <span className="credits-badge" style={{ background: 'var(--bg-card)', padding: '4px 10px', borderRadius: '16px', fontSize: '0.85rem', border: '1px solid var(--border)', marginRight: '10px' }}>
+            <strong>Free Validation Tool</strong>
+          </span>
         </div>
       </nav>
 
@@ -98,9 +40,10 @@ export default async function Home() {
             </h1>
             <p className="hero-subtitle">
               Instant pre-booking compliance firewall. Validate EORI numbers, HS Codes, 
-              and goods descriptions against EU ICS2 regulations in real-time.
+              and goods descriptions against EU ICS2 regulations in real-time. Completely free.
             </p>
-            <div className="hero-badges">
+            
+            <div className="hero-badges" style={{ marginTop: '16px' }}>
               <span className="hero-badge">
                 <span className="hero-badge-dot" />
                 EU EOS Live
@@ -117,43 +60,120 @@ export default async function Home() {
           </div>
         </header>
 
-        <div className="dashboard-grid">
-          <EoriValidator user={!!user} />
-          <HsCodeValidator user={!!user} />
-        </div>
-
-        {user && recentActivity.length > 0 && (
-          <div className="recent-activity" style={{ marginTop: '3rem', maxWidth: '800px', margin: '3rem auto 0 auto', background: 'var(--bg-card)', borderRadius: '12px', padding: '2rem', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Recent Activity</h2>
-              <Link href="/history" style={{ fontSize: '0.875rem', color: 'var(--accent-primary)', textDecoration: 'none', fontWeight: 500 }}>
-                View Full History &rarr;
-              </Link>
+        <div className="dashboard-split">
+          <div className="dashboard-main">
+            <div style={{ marginBottom: '24px', padding: '12px 16px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              <div>
+                <h4 style={{ margin: '0 0 2px 0', color: '#059669', fontSize: '0.9rem', fontWeight: '700' }}>Zero Data Retention Guarantee</h4>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  Validated in memory. Instantly destroyed. We do not store or log your proprietary manifests.
+                </p>
+              </div>
             </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {recentActivity.map((tx, idx) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '1rem', borderBottom: idx !== recentActivity.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  <div>
-                    <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
-                      {tx.type === 'VALIDATION' ? 'Validation' : tx.type === 'PURCHASE' ? 'Credit Purchase' : 'Signup Bonus'}
-                    </div>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                      {new Date(tx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {tx.reason}
-                    </div>
-                  </div>
-                  <div style={{ fontWeight: 600, color: tx.amount > 0 ? '#059669' : '#dc2626' }}>
-                    {tx.amount > 0 ? '+' : ''}{tx.amount}
-                  </div>
-                </div>
-              ))}
+
+            <div className="dashboard-grid">
+              <EoriValidator />
+              <HsCodeValidator />
             </div>
           </div>
-        )}
+
+          <aside className="dashboard-sidebar">
+            <div className="api-upsell-card">
+              <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                API Integration
+              </h3>
+              <p style={{ margin: '0 0 16px 0', fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                Automate your compliance pipeline. Connect our stateless NLP validation engine directly to your ERP or Warehouse Management System.
+              </p>
+              <div style={{ background: 'var(--bg-secondary)', padding: '12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', marginBottom: '16px' }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '600', marginBottom: '4px' }}>Enterprise Tier</div>
+                <div style={{ color: 'var(--text-primary)', fontWeight: '700', fontSize: '1.1rem' }}>$199 <span style={{ fontSize: '0.85rem', fontWeight: '500', color: 'var(--text-secondary)' }}>/ month</span></div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '2px' }}>Includes 50,000 requests</div>
+              </div>
+              <ApiRequestButton className="btn btn-primary btn-full" style={{ padding: '0.75rem' }}>Request API Key</ApiRequestButton>
+            </div>
+          </aside>
+        </div>
+
+        <section className="seo-section">
+          <h2>The Ultimate Free ICS2 Compliance Checker: Eliminate EU Border Delays Instantly</h2>
+          <p>
+            Shipping cargo into or through the European Union demands absolute regulatory precision. Under the EU's strict Import Control System 2 (ICS2) mandate, a single vague cargo description or an obsolete tariff code can trigger immediate customs rejections, unexpected holds, and catastrophic supply chain delays.
+          </p>
+          <p>
+            CargoGate's Free ICS2 Compliance Checker is your automated first line of defense. Built specifically for modern logistics managers, freight forwarders, and customs brokers, our high-speed validation engine audits your shipping manifests against official EU Customs standards in milliseconds - with zero data risk.
+          </p>
+
+          <h3 style={{ marginTop: '2rem', marginBottom: '1rem', color: 'var(--text-primary)', fontSize: '1.25rem', fontWeight: '700' }}>Stop EU Customs Holds Before They Happen</h3>
+          <p>
+            EU customs authorities routinely flag and block shipments due to non-compliant Entry Summary Declarations (ENS). CargoGate eliminates manual verification errors by automating cargo description and tariff classification audits.
+          </p>
+          <ul style={{ paddingLeft: '1.5rem', marginBottom: '2rem', color: 'var(--text-secondary)' }}>
+            <li style={{ marginBottom: '0.5rem' }}><strong>Prevent Costly Rejections:</strong> Catch non-compliant data before submitting your manifest to EU authorities.</li>
+            <li style={{ marginBottom: '0.5rem' }}><strong>Accelerate Clearance Speed:</strong> Keep your freight moving through European ports and airports without administrative bottlenecks.</li>
+            <li style={{ marginBottom: '0.5rem' }}><strong>Protect Sensitive Trade Data:</strong> Audit your goods descriptions using an enterprise-grade engine designed around total privacy.</li>
+          </ul>
+
+          <h3 style={{ marginTop: '2rem', marginBottom: '1rem', color: 'var(--text-primary)', fontSize: '1.25rem', fontWeight: '700' }}>Enterprise Features Built for Global Logistics</h3>
+          <div className="seo-feature-grid">
+            <div className="seo-feature-card">
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                1. AI-Powered ICS2 Goods Description Validator
+              </h3>
+              <p>
+                Our proprietary Natural Language Processing (NLP) engine is engineered to mirror the exact screening algorithms used by EU Customs. It automatically identifies and flags high-risk placeholder terms (such as "parts," "equipment," or "mixed cargo") and verifies that your manifest contains the precise physical item identifiers required for immediate clearance.
+              </p>
+            </div>
+            
+            <div className="seo-feature-card">
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                2. Live EU HS Code Verifier
+              </h3>
+              <p>
+                Eliminate the risk of using outdated 2017 tariff schedules. CargoGate's EU HS Code Verifier integrates the latest World Customs Organization (WCO) correlation index. The tool strictly enforces valid 4-digit and 6-digit global subheading boundaries and triggers instant alerts if you attempt to process an obsolete tariff classification.
+              </p>
+            </div>
+
+            <div className="seo-feature-card">
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                3. 100% Stateless Zero-Trust Privacy
+              </h3>
+              <p>
+                We recognize that supply chain manifests contain confidential client and cargo data. Unlike standard tools or clunky government portals, CargoGate operates with a strict Zero Data Retention architecture:
+              </p>
+              <ul style={{ marginTop: '0.75rem', paddingLeft: '1.2rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>In-Memory Processing:</strong> Every byte of data is validated temporarily in memory and destroyed instantly after screening.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>No Database Logging:</strong> We store zero client lists, packing details, or transaction histories.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Zero Friction:</strong> No account creation, no password management, and no hidden fees - just instant compliance validation.</li>
+              </ul>
+            </div>
+          </div>
+
+          <h3 style={{ marginTop: '3rem', marginBottom: '1rem', color: 'var(--text-primary)', fontSize: '1.25rem', fontWeight: '700' }}>Built for High-Volume Logistics Operations</h3>
+          <ul style={{ paddingLeft: '1.5rem', marginBottom: '2rem', color: 'var(--text-secondary)' }}>
+            <li style={{ marginBottom: '0.5rem' }}><strong>Freight Forwarders & NVOCCs:</strong> Rapidly pre-screen client manifests before ENS submission to avoid customs fines.</li>
+            <li style={{ marginBottom: '0.5rem' }}><strong>Customs Brokers:</strong> Guarantee full compliance with EU security and tax frameworks on every entry.</li>
+            <li style={{ marginBottom: '0.5rem' }}><strong>Global E-Commerce Exporters:</strong> Maintain uninterrupted delivery schedules across all 27 EU member states.</li>
+          </ul>
+
+          <div style={{ marginTop: '3rem', padding: '1.5rem', background: 'rgba(14, 165, 233, 0.1)', borderRadius: '8px', border: '1px solid rgba(14, 165, 233, 0.2)' }}>
+            <h3 style={{ color: 'var(--accent-primary)', marginBottom: '0.5rem', fontSize: '1.25rem', fontWeight: '700' }}>Validate Your Shipping Manifest in Seconds</h3>
+            <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+              Don't let vague descriptions or invalid HS codes paralyze your logistics network. Test your shipment data through CargoGate's free, secure engine right now and experience frictionless compliance.
+            </p>
+          </div>
+        </section>
       </main>
 
       <footer className="site-footer">
-        <p style={{ marginBottom: '8px' }}>© {new Date().getFullYear()} CargoGate · Enterprise EU ICS2 Compliance Platform</p>
+        <p style={{ marginBottom: '8px' }}>© {new Date().getFullYear()} CargoGate · Free EU ICS2 Compliance Platform</p>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
           <Link href="/privacy" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Privacy Policy</Link>
           <Link href="/terms" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Terms of Service</Link>

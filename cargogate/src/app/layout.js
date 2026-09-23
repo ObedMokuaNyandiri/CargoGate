@@ -2,10 +2,10 @@ import CookieConsent from '@/components/CookieConsent';
 import './globals.css';
 
 export const metadata = {
-  title: 'CargoGate Compliance',
+  title: 'Free ICS2 Compliance Checker & HS Code Verifier | CargoGate',
   description:
-    'Pre-booking compliance firewall for EU ICS2. Validate EORI numbers, HS Codes, and goods descriptions against official regulations in real-time.',
-  keywords: 'EORI, HS Code, ICS2, compliance, customs, EU, cargo, validation',
+    'Instantly validate goods descriptions and HS codes for EU ICS2 compliance. 100% free, stateless NLP tool with zero data retention. Prevent border holds.',
+  keywords: 'Free ICS2 Compliance Checker, ICS2 Goods Description Validator, EU HS Code Verifier, Import Control System 2 tool, EU Customs compliance tool, stateless HS code checker',
 };
 
 export const viewport = {

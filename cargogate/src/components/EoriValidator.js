@@ -3,12 +3,11 @@
 import { useState } from 'react';
 import StatusBadge from './StatusBadge';
 
-export default function EoriValidator({ user }) {
+export default function EoriValidator() {
   const [eori, setEori] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [paymentRequired, setPaymentRequired] = useState(false);
 
   const handleValidate = async () => {
     const trimmed = eori.trim().toUpperCase();
@@ -17,7 +16,6 @@ export default function EoriValidator({ user }) {
     setLoading(true);
     setResult(null);
     setError(null);
-    setPaymentRequired(false);
 
     try {
       const res = await fetch('/api/eori/validate', {
@@ -27,11 +25,6 @@ export default function EoriValidator({ user }) {
       });
 
       const data = await res.json();
-
-      if (res.status === 402 || data.error === 'PAYMENT_REQUIRED') {
-        setPaymentRequired(true);
-        return;
-      }
 
       if (!res.ok) {
         setError(data.error || data.message || 'Validation failed.');
@@ -111,39 +104,19 @@ export default function EoriValidator({ user }) {
             maxLength={17}
             spellCheck={false}
             autoComplete="off"
-            disabled={!user}
           />
         </div>
         <span className="input-hint">Format: 2-letter country code + up to 15 alphanumeric characters</span>
       </div>
 
-      {user ? (
-        <button
-          className="btn btn-primary btn-full"
-          onClick={handleValidate}
-          disabled={loading || !eori.trim()}
-          id="eori-validate-btn"
-        >
-          {loading ? 'Verifying…' : 'Verify EORI'}
-        </button>
-      ) : (
-        <a href="/login" className="btn btn-primary btn-full" style={{ textAlign: 'center' }}>
-          Sign In to Verify
-        </a>
-      )}
-
-      {paymentRequired && (
-        <div style={{ marginTop: '1.5rem', background: '#fee2e2', color: '#991b1b', padding: '1rem', borderRadius: '8px', border: '1px solid #fca5a5' }}>
-          <h4 style={{ margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-            0 Credits Remaining
-          </h4>
-          <p style={{ margin: '0 0 1rem 0', fontSize: '0.9rem' }}>You have 0 credits. Purchase credits to continue validating shipments.</p>
-          <a href="/billing" className="btn btn-primary" style={{ display: 'block', textAlign: 'center', width: '100%', background: '#dc2626', color: 'white', textDecoration: 'none' }}>
-            Buy Credits
-          </a>
-        </div>
-      )}
+      <button
+        className="btn btn-primary btn-full"
+        onClick={handleValidate}
+        disabled={loading || !eori.trim()}
+        id="eori-validate-btn"
+      >
+        {loading ? 'Verifying…' : 'Verify EORI'}
+      </button>
 
       {error && (
         <div style={{ marginTop: '1.5rem' }}>
