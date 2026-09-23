@@ -20,11 +20,18 @@ export default function Home() {
             CargoGate <span className="nav-brand-accent">Compliance</span>
           </span>
         </Link>
+        <div className="nav-links" style={{ display: 'flex', gap: '24px', alignItems: 'center', marginLeft: 'auto', marginRight: '24px' }}>
+          <Link href="#validator" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: '500', fontSize: '0.95rem' }}>Validator</Link>
+          <Link href="#features" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: '500', fontSize: '0.95rem' }}>Features</Link>
+          <Link href="#api" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: '500', fontSize: '0.95rem' }}>API</Link>
+        </div>
         <div className="nav-actions">
-          <ApiRequestButton className="nav-btn" style={{ marginRight: '12px', color: 'var(--text-primary)', borderColor: 'var(--border-subtle)', fontWeight: '600' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent-primary)' }}><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-            API Access
-          </ApiRequestButton>
+          <Link href="#api" style={{ textDecoration: 'none' }}>
+            <ApiRequestButton className="nav-btn" style={{ marginRight: '12px', color: 'var(--text-primary)', borderColor: 'var(--border-subtle)', fontWeight: '600' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent-primary)' }}><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+              API Access
+            </ApiRequestButton>
+          </Link>
           <span className="credits-badge" style={{ background: 'var(--bg-card)', padding: '4px 10px', borderRadius: '16px', fontSize: '0.85rem', border: '1px solid var(--border)', marginRight: '10px' }}>
             <strong>Free Validation Tool</strong>
           </span>
@@ -32,9 +39,9 @@ export default function Home() {
       </nav>
 
       <main className="dashboard">
-        <div className="dashboard-split">
+        <section id="validator" className="dashboard-split">
           <div className="dashboard-main">
-            <header className="hero" style={{ textAlign: 'center', padding: 'var(--space-2xl) 0 var(--space-xl) 0' }}>
+            <header id="home" className="hero" style={{ textAlign: 'center', padding: 'var(--space-2xl) 0 var(--space-xl) 0' }}>
               <div className="hero-content" style={{ maxWidth: '800px', margin: '0 auto' }}>
                 <h1 style={{ fontSize: '3.5rem', lineHeight: '1.1', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '1rem', letterSpacing: '-0.03em' }}>
                   The Ultimate Free
@@ -80,7 +87,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="api-upsell-card" style={{ marginTop: '0', background: 'linear-gradient(145deg, #0f172a, #1e293b)', border: '1px solid rgba(14, 165, 233, 0.4)', borderRadius: '16px', padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)', color: '#fff' }}>
+            <div id="api" className="api-upsell-card" style={{ marginTop: '0', background: 'linear-gradient(145deg, #0f172a, #1e293b)', border: '1px solid rgba(14, 165, 233, 0.4)', borderRadius: '16px', padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)', color: '#fff' }}>
               <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '4px', background: 'linear-gradient(90deg, #3b82f6, #0ea5e9, #2dd4bf)' }}></div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                 <div style={{ background: 'rgba(14, 165, 233, 0.2)', padding: '10px', borderRadius: '12px', color: '#38bdf8' }}>
@@ -119,9 +126,9 @@ export default function Home() {
               </div>
             </div>
           </aside>
-        </div>
+        </section>
 
-        <section className="seo-section" style={{ marginTop: 'var(--space-3xl)' }}>
+        <section id="features" className="seo-section" style={{ marginTop: 'var(--space-3xl)' }}>
           <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center', marginBottom: 'var(--space-2xl)' }}>
             <h2 style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '1rem', letterSpacing: '-0.02em' }}>
               Why CargoGate for ICS2 Compliance?
